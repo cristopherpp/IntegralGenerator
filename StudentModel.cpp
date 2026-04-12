@@ -20,7 +20,7 @@ void initStudentModel() {
     stats[i].consecutiveCorrect = 0;
     stats[i].consecutiveWrong = 0;
     stats[i].weight = BASE_WEIGHT;
-    stats[i].difficulty = 0;
+    stats[i].difficulty = 1; // starting at medium
   }
 }
 
