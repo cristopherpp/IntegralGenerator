@@ -1,3 +1,4 @@
+#line 1 "/home/cristopher/Desktop/projects/IntegralGenerator/IntegralEngine.h"
 #ifndef INTEGRAL_ENGINE_H
 #define INTEGRAL_ENGINE_H
 
@@ -14,34 +15,19 @@ enum IntegralType {
   INTEGRAL_TYPE_COUNT
 };
 
-enum DifficultyLevel {
-  DIFF_EASY,
-  DIFF_MEDIUM,
-  DIFF_HARD
-};
-
 struct IntegralProblem {
   IntegralType type;
-  DifficultyLevel difficulty;
-
   char integral[24];
   char correctAnswer[24];
   char wrongAnswer[24];
   char optionA[24];
   char optionB[24];
-  char correctOption;
+  char correctOption; // 'A' o 'B'
 };
 
 void generateIntegralProblem(IntegralProblem &problem);
 void generateIntegralProblemByType(IntegralProblem &problem, IntegralType type);
-void generateIntegralProblemByTypeAndDifficulty(
-  IntegralProblem &problem,
-  IntegralType type,
-  DifficultyLevel difficulty
-);
-
 void buildOptions(IntegralProblem &problem);
 const char* getIntegralTypeName(IntegralType type);
-const char* getDifficultyName(DifficultyLevel difficulty);
 
 #endif
