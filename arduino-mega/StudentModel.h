@@ -14,6 +14,7 @@ struct CategoryStats {
 
   uint8_t weight;
   uint8_t difficulty;
+  uint8_t mastery;
 };
 
 void initStudentModel();

@@ -1,4 +1,5 @@
-url = Desktop/projects/IntegralGenerator
+urlMega = Desktop/projects/IntegralGenerator/arduino-mega
+urlUno = Desktop/projects/IntegralGenerator/arduino-uno
 
 # Compilation of arduino uno
 

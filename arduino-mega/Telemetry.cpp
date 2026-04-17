@@ -65,6 +65,9 @@ void sendQuestionResultReport(
   Serial.print(F("  Practice priority: "));
   Serial.println(s.weight);
 
+  Serial.print(F("  Mastery score: "));
+  Serial.println(s.mastery);
+
   Serial.print(F("  Current challenge level: "));
   if (s.difficulty == 0) Serial.println(F("Easy"));
   else if (s.difficulty == 1) Serial.println(F("Medium"));
@@ -104,6 +107,9 @@ void sendSessionSummaryReport() {
 
     Serial.print(F(" | priority="));
     Serial.print(stats[i].weight);
+
+    Serial.print(F(" | mastery="));
+    Serial.print(stats[i].mastery);
 
     Serial.print(F(" | level="));
     if (stats[i].difficulty == 0) Serial.println(F("Easy"));

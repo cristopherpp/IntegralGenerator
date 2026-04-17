@@ -28,11 +28,11 @@ struct IntegralProblem {
   IntegralType type;
   DifficultyLevel difficulty;
 
-  char integral[24];
-  char correctAnswer[24];
-  char wrongAnswer[24];
-  char optionA[24];
-  char optionB[24];
+  char integral[48];
+  char correctAnswer[48];
+  char wrongAnswer[48];
+  char optionA[48];
+  char optionB[48];
   char correctOption;
 };
 

@@ -1,5 +1,6 @@
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <string.h>
 
 #include "IntegralEngine.h"
@@ -14,7 +15,12 @@
 #define LED_ROJO 3
 #define BUZZER 4
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define OLED_ADDRESS 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 IntegralProblem currentProblem;
 
@@ -23,7 +29,6 @@ enum AppState {
   STATE_SHOW_RESULT
 };
 
-// ===== BUTTON SYSTEM =====
 struct ButtonState {
   uint8_t pin;
   bool lastRaw;
@@ -37,23 +42,14 @@ unsigned long resultStartTime = 0;
 bool ledActive = false;
 unsigned long ledOffTime = 0;
 
-const unsigned long RESULT_SCREEN_MS = 900;
+const unsigned long RESULT_SCREEN_MS = 1000;
 const unsigned long LED_ON_MS = 180;
-
-// LCD switching
-bool showOptionA = true;
-unsigned long lastSwitchMs = 0;
-const unsigned long SWITCH_INTERVAL = 1500;
-
-// ===== SAFE PRINT =====
-void print16Offset(const char* text, uint8_t offset) {
-  char buffer[17];
-  strncpy(buffer, text, 16 - offset);
-  buffer[16 - offset] = '\0';
-  lcd.print(buffer);
-}
-
 const unsigned long DEBOUNCE_MS = 35;
+
+const uint8_t CHAR_WIDTH = 6;
+const uint8_t LINE_HEIGHT = 8;
+const uint8_t MAX_LINES = 8;
+const uint8_t FULL_WIDTH_CHARS = SCREEN_WIDTH / CHAR_WIDTH;
 
 ButtonState buttonA = {BOTON_A, HIGH, HIGH, 0};
 ButtonState buttonB = {BOTON_B, HIGH, HIGH, 0};
@@ -76,7 +72,92 @@ bool updateButton(ButtonState &b) {
   return false;
 }
 
-// ===== SETUP =====
+uint8_t drawChunkedText(
+  uint8_t startLine,
+  const char* text,
+  uint8_t maxChars,
+  uint8_t maxLines,
+  const char* firstPrefix,
+  const char* continuationPrefix
+) {
+  size_t textLen = strlen(text);
+  size_t index = 0;
+  uint8_t rendered = 0;
+
+  while (rendered < maxLines && (index < textLen || rendered == 0)) {
+    const char* prefix = (rendered == 0) ? firstPrefix : continuationPrefix;
+    uint8_t prefixLen = strlen(prefix);
+    uint8_t available = maxChars;
+
+    display.setCursor(0, (startLine + rendered) * LINE_HEIGHT);
+    display.print(prefix);
+
+    if (prefixLen < maxChars) {
+      available = maxChars - prefixLen;
+    } else {
+      available = 0;
+    }
+
+    for (uint8_t i = 0; i < available && index < textLen; i++, index++) {
+      display.write(text[index]);
+    }
+
+    rendered++;
+
+    if (textLen == 0) break;
+  }
+
+  return rendered;
+}
+
+void drawProblemScreen() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setCursor(0, 0);
+  display.print("Integral:");
+
+  uint8_t line = 1;
+
+  // Give more lines to the integral itself
+  line += drawChunkedText(line, currentProblem.integral, FULL_WIDTH_CHARS, 3, "", "  ");
+
+  // Give more space to options
+  line++;
+
+  line += drawChunkedText(line, currentProblem.optionA, FULL_WIDTH_CHARS, 2, "A:", "  ");
+  line += drawChunkedText(line, currentProblem.optionB, FULL_WIDTH_CHARS, 2, "B:", "  ");
+
+  display.display();
+}
+
+void drawResultScreen(bool correct, char selected) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setCursor(0, 8);
+  display.print("Seleccion: ");
+  display.print(selected);
+
+  display.setCursor(0, 24);
+  if (correct) {
+    display.print("Resultado:");
+    display.setCursor(0, 36);
+    display.print("CORRECTO");
+  } else {
+    display.print("Resultado:");
+    display.setCursor(0, 36);
+    display.print("INCORRECTO");
+    display.setCursor(0, 48);
+    display.print("Respuesta: ");
+    display.print(currentProblem.correctOption);
+  }
+
+  display.display();
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("BOOT: setup started");
@@ -96,9 +177,21 @@ void setup() {
   randomSeed(analogRead(A0));
   initStudentModel();
 
-  lcd.init();
-  lcd.backlight();
-  lcd.clear();
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+    Serial.println("BOOT: OLED init failed");
+    while (true) {
+      delay(100);
+    }
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.print("Integral Generator");
+  display.setCursor(0, 16);
+  display.print("OLED 128x64 listo");
+  display.display();
 
   Serial.println("BOOT: display init ok");
 
@@ -106,11 +199,9 @@ void setup() {
   Serial.println("BOOT: first problem loaded");
 }
 
-// ===== LOOP =====
 void loop() {
   handleButtons();
   updateOutputs();
-  updateOptionDisplay();
 
   if (appState == STATE_SHOW_RESULT) {
     if (millis() - resultStartTime >= RESULT_SCREEN_MS) {
@@ -119,7 +210,6 @@ void loop() {
   }
 }
 
-// ===== BUTTON HANDLING =====
 void handleButtons() {
   if (appState != STATE_SHOW_PROBLEM) return;
 
@@ -130,7 +220,6 @@ void handleButtons() {
   }
 }
 
-// ===== PROCESS ANSWER =====
 void processAnswer(char selectedOption) {
   bool correct = validateAnswer(currentProblem, selectedOption);
 
@@ -148,71 +237,23 @@ void processAnswer(char selectedOption) {
   }
 }
 
-// ===== LOAD NEXT PROBLEM =====
 void loadNextAdaptiveProblem() {
   IntegralType nextType = pickNextIntegralType();
-  generateIntegralProblemByType(currentProblem, nextType);
+  DifficultyLevel nextDifficulty = getDifficultyForType(nextType);
+  generateIntegralProblemByTypeAndDifficulty(currentProblem, nextType, nextDifficulty);
 
   appState = STATE_SHOW_PROBLEM;
   showProblem();
 }
 
-// ===== DISPLAY PROBLEM =====
 void showProblem() {
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  print16Offset(currentProblem.integral, 0);
-
-  lcd.setCursor(0, 1);
-  lcd.print("A:");
-  print16Offset(currentProblem.optionA, 2);
-
-  showOptionA = true;
-  lastSwitchMs = millis();
+  drawProblemScreen();
 }
 
-// ===== SWITCH OPTIONS =====
-void updateOptionDisplay() {
-  if (appState != STATE_SHOW_PROBLEM) return;
-
-  if (millis() - lastSwitchMs >= SWITCH_INTERVAL) {
-    lastSwitchMs = millis();
-    showOptionA = !showOptionA;
-
-    lcd.setCursor(0, 1);
-    lcd.print("                ");
-    lcd.setCursor(0, 1);
-
-    if (showOptionA) {
-      lcd.print("A:");
-      print16Offset(currentProblem.optionA, 2);
-    } else {
-      lcd.print("B:");
-      print16Offset(currentProblem.optionB, 2);
-    }
-  }
-}
-
-// ===== DISPLAY RESULT =====
 void showResult(bool correct, char selected) {
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  lcd.print("Sel:");
-  lcd.print(selected);
-
-  lcd.setCursor(0, 1);
-
-  if (correct) {
-    lcd.print("CORRECTO");
-  } else {
-    lcd.print("INC R:");
-    lcd.print(currentProblem.correctOption);
-  }
+  drawResultScreen(correct, selected);
 }
 
-// ===== FEEDBACK =====
 void triggerFeedback(bool correct) {
   if (correct) {
     digitalWrite(LED_VERDE, HIGH);
@@ -228,7 +269,6 @@ void triggerFeedback(bool correct) {
   ledOffTime = millis() + LED_ON_MS;
 }
 
-// ===== LED CONTROL =====
 void updateOutputs() {
   if (ledActive && millis() >= ledOffTime) {
     digitalWrite(LED_VERDE, LOW);
@@ -237,7 +277,6 @@ void updateOutputs() {
   }
 }
 
-// ===== SOUND =====
 void sonidoCorrecto() {
   tone(BUZZER, 1047, 70);
   delay(80);
