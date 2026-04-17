@@ -1,19 +1,20 @@
 #include <Wire.h>
-#include <U8x8lib.h>
+#include <LiquidCrystal_I2C.h>
+#include <string.h>
 
 #include "IntegralEngine.h"
 #include "QuizValidator.h"
 #include "StudentModel.h"
 #include "Telemetry.h"
 
-#define BOTON_A 2
-#define BOTON_B 3
+#define BOTON_A 22
+#define BOTON_B 23
 
-#define LED_VERDE 4
-#define LED_ROJO 5
-#define BUZZER 6
+#define LED_VERDE 2
+#define LED_ROJO 3
+#define BUZZER 4
 
-U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 IntegralProblem currentProblem;
 
@@ -22,10 +23,15 @@ enum AppState {
   STATE_SHOW_RESULT
 };
 
-AppState appState = STATE_SHOW_PROBLEM;
+// ===== BUTTON SYSTEM =====
+struct ButtonState {
+  uint8_t pin;
+  bool lastRaw;
+  bool stableState;
+  unsigned long lastChangeMs;
+};
 
-bool previousA = HIGH;
-bool previousB = HIGH;
+AppState appState = STATE_SHOW_PROBLEM;
 
 unsigned long resultStartTime = 0;
 bool ledActive = false;
@@ -34,22 +40,18 @@ unsigned long ledOffTime = 0;
 const unsigned long RESULT_SCREEN_MS = 900;
 const unsigned long LED_ON_MS = 180;
 
-void showProblem();
-void showResult(bool correct, char selected);
-void loadNextAdaptiveProblem();
-void handleButtons();
-void processAnswer(char selectedOption);
-void triggerFeedback(bool correct);
-void updateOutputs();
-void sonidoCorrecto();
-void sonidoIncorrecto();
+// LCD switching
+bool showOptionA = true;
+unsigned long lastSwitchMs = 0;
+const unsigned long SWITCH_INTERVAL = 1500;
 
-struct ButtonState {
-  uint8_t pin;
-  bool lastRaw;
-  bool stableState;
-  unsigned long lastChangeMs;
-};
+// ===== SAFE PRINT =====
+void print16Offset(const char* text, uint8_t offset) {
+  char buffer[17];
+  strncpy(buffer, text, 16 - offset);
+  buffer[16 - offset] = '\0';
+  lcd.print(buffer);
+}
 
 const unsigned long DEBOUNCE_MS = 35;
 
@@ -67,17 +69,14 @@ bool updateButton(ButtonState &b) {
   if ((millis() - b.lastChangeMs) >= DEBOUNCE_MS) {
     if (b.stableState != raw) {
       b.stableState = raw;
-
-      // return true only on confirmed press
-      if (b.stableState == LOW) {
-        return true;
-      }
+      if (b.stableState == LOW) return true;
     }
   }
 
   return false;
 }
 
+// ===== SETUP =====
 void setup() {
   Serial.begin(115200);
   Serial.println("BOOT: setup started");
@@ -90,8 +89,6 @@ void setup() {
   pinMode(LED_ROJO, OUTPUT);
   pinMode(BUZZER, OUTPUT);
 
-  Serial.println("BOOT: pins configured");
-
   digitalWrite(LED_VERDE, LOW);
   digitalWrite(LED_ROJO, LOW);
   digitalWrite(BUZZER, LOW);
@@ -99,76 +96,45 @@ void setup() {
   randomSeed(analogRead(A0));
   initStudentModel();
 
-  Serial.println("BOOT: student model initialized");
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
 
-  u8x8.begin();
-  u8x8.setPowerSave(0);
-  u8x8.setFont(u8x8_font_chroma48medium8_r);
   Serial.println("BOOT: display init ok");
 
   loadNextAdaptiveProblem();
   Serial.println("BOOT: first problem loaded");
 }
 
-/*void setup() {
-  Wire.begin();
-
-  // For sending it to the computers
-  initTelemetry(115200);
-
-  pinMode(BOTON_A, INPUT_PULLUP);
-  pinMode(BOTON_B, INPUT_PULLUP);
-
-  pinMode(LED_VERDE, OUTPUT);
-  pinMode(LED_ROJO, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
-
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_ROJO, LOW);
-  digitalWrite(BUZZER, LOW);
-
-  randomSeed(analogRead(A0));
-  initStudentModel();
-
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    for (;;) {}
-  }
-
-  loadNextAdaptiveProblem();
-  }*/
-
+// ===== LOOP =====
 void loop() {
   handleButtons();
   updateOutputs();
+  updateOptionDisplay();
 
   if (appState == STATE_SHOW_RESULT) {
     if (millis() - resultStartTime >= RESULT_SCREEN_MS) {
       loadNextAdaptiveProblem();
     }
   }
-
-  previousA = digitalRead(BOTON_A);
-  previousB = digitalRead(BOTON_B);
 }
 
+// ===== BUTTON HANDLING =====
 void handleButtons() {
   if (appState != STATE_SHOW_PROBLEM) return;
 
-  bool pressA = updateButton(buttonA);
-  bool pressB = updateButton(buttonB);
-
-  if (pressA) {
+  if (updateButton(buttonA)) {
     processAnswer('A');
-  } else if (pressB) {
+  } else if (updateButton(buttonB)) {
     processAnswer('B');
   }
 }
 
+// ===== PROCESS ANSWER =====
 void processAnswer(char selectedOption) {
   bool correct = validateAnswer(currentProblem, selectedOption);
 
   registerResult(currentProblem.type, correct);
-
   sendQuestionResultReport(currentProblem, selectedOption, correct);
 
   showResult(correct, selectedOption);
@@ -178,10 +144,11 @@ void processAnswer(char selectedOption) {
   appState = STATE_SHOW_RESULT;
 
   if (getTotalShown() % 8 == 0) {
-      sendSessionSummaryReport();
+    sendSessionSummaryReport();
   }
 }
 
+// ===== LOAD NEXT PROBLEM =====
 void loadNextAdaptiveProblem() {
   IntegralType nextType = pickNextIntegralType();
   generateIntegralProblemByType(currentProblem, nextType);
@@ -190,36 +157,62 @@ void loadNextAdaptiveProblem() {
   showProblem();
 }
 
+// ===== DISPLAY PROBLEM =====
 void showProblem() {
-  u8x8.clear();
+  lcd.clear();
 
-  u8x8.drawString(0, 0, "Integral:");
-  u8x8.drawString(0, 1, currentProblem.integral);
+  lcd.setCursor(0, 0);
+  print16Offset(currentProblem.integral, 0);
 
-  u8x8.drawString(0, 4, "A)");
-  u8x8.drawString(3, 4, currentProblem.optionA);
+  lcd.setCursor(0, 1);
+  lcd.print("A:");
+  print16Offset(currentProblem.optionA, 2);
 
-  u8x8.drawString(0, 6, "B)");
-  u8x8.drawString(3, 6, currentProblem.optionB);
+  showOptionA = true;
+  lastSwitchMs = millis();
 }
 
-void showResult(bool correct, char selected) {
-  u8x8.clear();
+// ===== SWITCH OPTIONS =====
+void updateOptionDisplay() {
+  if (appState != STATE_SHOW_PROBLEM) return;
 
-  u8x8.drawString(0,0, "Elegiste:");
-  if (selected == 'A') u8x8.drawString(11, 0, "B");
-  else u8x8.drawString(11, 0, "B");
+  if (millis() - lastSwitchMs >= SWITCH_INTERVAL) {
+    lastSwitchMs = millis();
+    showOptionA = !showOptionA;
 
-  if (correct) {
-    u8x8.drawString(0, 3, "CORRECTO");
-  } else {
-    u8x8.drawString(0, 3, "INCORRECTO");
-    u8x8.drawString(0, 5, "Correcto:");
-    if (currentProblem.correctOption == 'A') u8x8.drawString(9, 5, "A");
-    else u8x8.drawString(9, 5, "B");
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+    lcd.setCursor(0, 1);
+
+    if (showOptionA) {
+      lcd.print("A:");
+      print16Offset(currentProblem.optionA, 2);
+    } else {
+      lcd.print("B:");
+      print16Offset(currentProblem.optionB, 2);
+    }
   }
 }
 
+// ===== DISPLAY RESULT =====
+void showResult(bool correct, char selected) {
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Sel:");
+  lcd.print(selected);
+
+  lcd.setCursor(0, 1);
+
+  if (correct) {
+    lcd.print("CORRECTO");
+  } else {
+    lcd.print("INC R:");
+    lcd.print(currentProblem.correctOption);
+  }
+}
+
+// ===== FEEDBACK =====
 void triggerFeedback(bool correct) {
   if (correct) {
     digitalWrite(LED_VERDE, HIGH);
@@ -235,6 +228,7 @@ void triggerFeedback(bool correct) {
   ledOffTime = millis() + LED_ON_MS;
 }
 
+// ===== LED CONTROL =====
 void updateOutputs() {
   if (ledActive && millis() >= ledOffTime) {
     digitalWrite(LED_VERDE, LOW);
@@ -243,12 +237,15 @@ void updateOutputs() {
   }
 }
 
+// ===== SOUND =====
 void sonidoCorrecto() {
   tone(BUZZER, 1047, 70);
   delay(80);
   tone(BUZZER, 1319, 80);
   delay(90);
   tone(BUZZER, 1568, 110);
+  delay(120);
+  noTone(BUZZER);
 }
 
 void sonidoIncorrecto() {
@@ -257,4 +254,6 @@ void sonidoIncorrecto() {
   tone(BUZZER, 494, 100);
   delay(110);
   tone(BUZZER, 349, 140);
+  delay(150);
+  noTone(BUZZER);
 }
