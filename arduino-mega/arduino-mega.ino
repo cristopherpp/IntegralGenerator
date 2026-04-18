@@ -11,9 +11,9 @@
 #define BOTON_A 22
 #define BOTON_B 23
 
-#define LED_VERDE 2
-#define LED_ROJO 3
-#define BUZZER 4
+#define LED_VERDE 3
+#define LED_ROJO 4
+#define BUZZER 2
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
