@@ -1,123 +1,123 @@
 #include "IntegralEngine.h"
 
-static void generatePowerSimple(IntegralProblem &p, DifficultyLevel d);
-static void generatePowerCoeff(IntegralProblem &p, DifficultyLevel d);
-static void generateConstant(IntegralProblem &p, DifficultyLevel d);
-static void generateSin(IntegralProblem &p, DifficultyLevel d);
-static void generateCos(IntegralProblem &p, DifficultyLevel d);
-static void generateExp(IntegralProblem &p, DifficultyLevel d);
-static void generateLog(IntegralProblem &p, DifficultyLevel d);
-static void generateNegPower(IntegralProblem &p, DifficultyLevel d);
-static void generateRoot(IntegralProblem &p, DifficultyLevel d);
-static void generatePolySum(IntegralProblem &p, DifficultyLevel d);
-static void generateMixedSum(IntegralProblem &p, DifficultyLevel d);
+static void generarPotenciaSimple(ProblemaIntegral &p, NivelDificultad d);
+static void generarPotenciaCoef(ProblemaIntegral &p, NivelDificultad d);
+static void generarConstante(ProblemaIntegral &p, NivelDificultad d);
+static void generarSeno(ProblemaIntegral &p, NivelDificultad d);
+static void generarCoseno(ProblemaIntegral &p, NivelDificultad d);
+static void generarExponencial(ProblemaIntegral &p, NivelDificultad d);
+static void generarLog(ProblemaIntegral &p, NivelDificultad d);
+static void generarPotenciaNeg(ProblemaIntegral &p, NivelDificultad d);
+static void generarRaiz(ProblemaIntegral &p, NivelDificultad d);
+static void generarSumaPolinomio(ProblemaIntegral &p, NivelDificultad d);
+static void generarSumaMixta(ProblemaIntegral &p, NivelDificultad d);
 
-void generateIntegralProblem(IntegralProblem &problem) {
-  IntegralType type = (IntegralType)random(0, INTEGRAL_TYPE_COUNT);
-  DifficultyLevel difficulty = (DifficultyLevel)random(0, 3);
-  generateIntegralProblemByTypeAndDifficulty(problem, type, difficulty);
+void generarProblemaIntegral(ProblemaIntegral &problema) {
+  TipoIntegral tipo = (TipoIntegral)random(0, CANTIDAD_TIPOS_INTEGRAL);
+  NivelDificultad dificultad = (NivelDificultad)random(0, 3);
+  generarProblemaIntegralPorTipoYDificultad(problema, tipo, dificultad);
 }
 
-void generateIntegralProblemByType(IntegralProblem &problem, IntegralType type) {
-  generateIntegralProblemByTypeAndDifficulty(problem, type, DIFF_MEDIUM);
+void generarProblemaIntegralPorTipo(ProblemaIntegral &problema, TipoIntegral tipo) {
+  generarProblemaIntegralPorTipoYDificultad(problema, tipo, DIF_MEDIO);
 }
 
-void generateIntegralProblemByTypeAndDifficulty(
-  IntegralProblem &problem,
-  IntegralType type,
-  DifficultyLevel difficulty
+void generarProblemaIntegralPorTipoYDificultad(
+  ProblemaIntegral &problema,
+  TipoIntegral tipo,
+  NivelDificultad dificultad
 ) {
-  problem.type = type;
-  problem.difficulty = difficulty;
+  problema.tipo = tipo;
+  problema.dificultad = dificultad;
 
-  switch (type) {
-    case POWER_SIMPLE:   generatePowerSimple(problem, difficulty); break;
-    case POWER_COEFF:    generatePowerCoeff(problem, difficulty); break;
-    case CONSTANT_TYPE:  generateConstant(problem, difficulty); break;
-    case SIN_TYPE:       generateSin(problem, difficulty); break;
-    case COS_TYPE:       generateCos(problem, difficulty); break;
-    case EXP_TYPE:       generateExp(problem, difficulty); break;
-    case LOG_TYPE:       generateLog(problem, difficulty); break;
-    case NEG_POWER_TYPE: generateNegPower(problem, difficulty); break;
-    case ROOT_TYPE:      generateRoot(problem, difficulty); break;
-    case POLY_SUM_TYPE:  generatePolySum(problem, difficulty); break;
-    case MIXED_SUM_TYPE: generateMixedSum(problem, difficulty); break;
-    default:             generatePowerSimple(problem, difficulty); break;
+  switch (tipo) {
+    case POTENCIA_SIMPLE:   generarPotenciaSimple(problema, dificultad); break;
+    case POTENCIA_COEF:    generarPotenciaCoef(problema, dificultad); break;
+    case TIPO_CONSTANTE:  generarConstante(problema, dificultad); break;
+    case TIPO_SENO:       generarSeno(problema, dificultad); break;
+    case TIPO_COSENO:       generarCoseno(problema, dificultad); break;
+    case TIPO_EXPONENCIAL:       generarExponencial(problema, dificultad); break;
+    case TIPO_LOG:       generarLog(problema, dificultad); break;
+    case TIPO_POTENCIA_NEG: generarPotenciaNeg(problema, dificultad); break;
+    case TIPO_RAIZ:      generarRaiz(problema, dificultad); break;
+    case TIPO_SUMA_POL:  generarSumaPolinomio(problema, dificultad); break;
+    case TIPO_SUMA_MIXTA: generarSumaMixta(problema, dificultad); break;
+    default:             generarPotenciaSimple(problema, dificultad); break;
   }
 
-  buildOptions(problem);
+  construirOpciones(problema);
 }
 
-void buildOptions(IntegralProblem &problem) {
+void construirOpciones(ProblemaIntegral &problema) {
   if (random(0, 2) == 0) {
-    strncpy(problem.optionA, problem.correctAnswer, sizeof(problem.optionA));
-    strncpy(problem.optionB, problem.wrongAnswer, sizeof(problem.optionB));
-    problem.correctOption = 'A';
+    strncpy(problema.opcionA, problema.respuestaCorrecta, sizeof(problema.opcionA));
+    strncpy(problema.opcionB, problema.respuestaIncorrecta, sizeof(problema.opcionB));
+    problema.opcionCorrecta = 'A';
   } else {
-    strncpy(problem.optionA, problem.wrongAnswer, sizeof(problem.optionA));
-    strncpy(problem.optionB, problem.correctAnswer, sizeof(problem.optionB));
-    problem.correctOption = 'B';
+    strncpy(problema.opcionA, problema.respuestaIncorrecta, sizeof(problema.opcionA));
+    strncpy(problema.opcionB, problema.respuestaCorrecta, sizeof(problema.opcionB));
+    problema.opcionCorrecta = 'B';
   }
 
-  problem.optionA[sizeof(problem.optionA) - 1] = '\0';
-  problem.optionB[sizeof(problem.optionB) - 1] = '\0';
+  problema.opcionA[sizeof(problema.opcionA) - 1] = '\0';
+  problema.opcionB[sizeof(problema.opcionB) - 1] = '\0';
 }
 
-const char* getIntegralTypeName(IntegralType type) {
-  switch (type) {
-    case POWER_SIMPLE: return "Potencias";
-    case POWER_COEFF: return "Pot. coef";
-    case CONSTANT_TYPE: return "Constantes";
-    case SIN_TYPE: return "Seno";
-    case COS_TYPE: return "Coseno";
-    case EXP_TYPE: return "Exponencial";
-    case LOG_TYPE: return "Logaritmica";
-    case NEG_POWER_TYPE: return "Pot. negativas";
-    case ROOT_TYPE: return "Raices";
-    case POLY_SUM_TYPE: return "Sumas pol";
-    case MIXED_SUM_TYPE: return "Sumas mixtas";
+const char* obtenerNombreTipoIntegral(TipoIntegral tipo) {
+  switch (tipo) {
+    case POTENCIA_SIMPLE: return "Potencias";
+    case POTENCIA_COEF: return "Pot. coef";
+    case TIPO_CONSTANTE: return "Constantes";
+    case TIPO_SENO: return "Seno";
+    case TIPO_COSENO: return "Coseno";
+    case TIPO_EXPONENCIAL: return "Exponencial";
+    case TIPO_LOG: return "Logaritmica";
+    case TIPO_POTENCIA_NEG: return "Pot. negativas";
+    case TIPO_RAIZ: return "Raices";
+    case TIPO_SUMA_POL: return "Sumas pol";
+    case TIPO_SUMA_MIXTA: return "Sumas mixtas";
     default: return "Desconocida";
   }
 }
 
-const char* getDifficultyName(DifficultyLevel difficulty) {
-  switch (difficulty) {
-    case DIFF_EASY: return "Easy";
-    case DIFF_MEDIUM: return "Medium";
-    case DIFF_HARD: return "Hard";
+const char* obtenerNombreDificultad(NivelDificultad dificultad) {
+  switch (dificultad) {
+    case DIF_FACIL: return "Facil";
+    case DIF_MEDIO: return "Medio";
+    case DIF_DIFICIL: return "Dificil";
     default: return "?";
   }
 }
 
-static void generatePowerSimple(IntegralProblem &p, DifficultyLevel d) {
+static void generarPotenciaSimple(ProblemaIntegral &p, NivelDificultad d) {
   int n;
 
-  if (d == DIFF_EASY) n = random(1, 3);
-  else if (d == DIFF_MEDIUM) n = random(3, 7);
+  if (d == DIF_FACIL) n = random(1, 3);
+  else if (d == DIF_MEDIO) n = random(3, 7);
   else n = random(7, 11);
 
-  int newExp = n + 1;
+  int nuevoExp = n + 1;
 
   snprintf(p.integral, sizeof(p.integral), "S x^%d dx", n);
-  snprintf(p.correctAnswer, sizeof(p.correctAnswer), "x^%d/%d+C", newExp, newExp);
+  snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "x^%d/%d+C", nuevoExp, nuevoExp);
 
-  int wrongType = random(0, 3);
-  if (wrongType == 0) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^%d+C", newExp);
-  } else if (wrongType == 1) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%d+C", n, n - 1);
+  int tipoIncorrecto = random(0, 3);
+  if (tipoIncorrecto == 0) {
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^%d+C", nuevoExp);
+  } else if (tipoIncorrecto == 1) {
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%d+C", n, n - 1);
   } else {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^%d/%d+C", n, n);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^%d/%d+C", n, n);
   }
 }
 
-static void generatePowerCoeff(IntegralProblem &p, DifficultyLevel d) {
+static void generarPotenciaCoef(ProblemaIntegral &p, NivelDificultad d) {
   int a, n;
 
-  if (d == DIFF_EASY) {
+  if (d == DIF_FACIL) {
     a = random(2, 5);
     n = random(1, 3);
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     a = random(3, 8);
     n = random(3, 6);
   } else {
@@ -125,313 +125,313 @@ static void generatePowerCoeff(IntegralProblem &p, DifficultyLevel d) {
     n = random(6, 10);
   }
 
-  int newExp = n + 1;
+  int nuevoExp = n + 1;
 
   snprintf(p.integral, sizeof(p.integral), "S %dx^%d dx", a, n);
 
-  if (a % newExp == 0) {
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dx^%d+C", a / newExp, newExp);
+  if (a % nuevoExp == 0) {
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dx^%d+C", a / nuevoExp, nuevoExp);
   } else {
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dx^%d/%d+C", a, newExp, newExp);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dx^%d/%d+C", a, nuevoExp, nuevoExp);
   }
 
-  int wrongType = random(0, 3);
-  if (wrongType == 0) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%d+C", a, newExp);
-  } else if (wrongType == 1) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%d+C", a * n, n - 1);
+  int tipoIncorrecto = random(0, 3);
+  if (tipoIncorrecto == 0) {
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%d+C", a, nuevoExp);
+  } else if (tipoIncorrecto == 1) {
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%d+C", a * n, n - 1);
   } else {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%d/%d+C", a, n, n);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%d/%d+C", a, n, n);
   }
 }
 
-static void generateConstant(IntegralProblem &p, DifficultyLevel d) {
+static void generarConstante(ProblemaIntegral &p, NivelDificultad d) {
   int k;
 
-  if (d == DIFF_EASY) k = random(2, 6);
-  else if (d == DIFF_MEDIUM) k = random(6, 13);
+  if (d == DIF_FACIL) k = random(2, 6);
+  else if (d == DIF_MEDIO) k = random(6, 13);
   else k = random(13, 31);
 
   snprintf(p.integral, sizeof(p.integral), "S %d dx", k);
-  snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dx+C", k);
+  snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dx+C", k);
 
   if (random(0, 2) == 0) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%d+C", k);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%d+C", k);
   } else {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^2+C", k);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^2+C", k);
   }
 }
 
-static void generateSin(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarSeno(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S sin(x) dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "-cos(x)+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "-cos(x)+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "cos(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "cos(x)+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "sin(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "sin(x)+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     int a = random(2, 8);
     snprintf(p.integral, sizeof(p.integral), "S %dsin(x)dx", a);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "-%dcos(x)+C", a);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "-%dcos(x)+C", a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dcos(x)+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dcos(x)+C", a);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dsin(x)+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dsin(x)+C", a);
     }
 
   } else {
     int a = random(2, 6);
     int n = random(2, 5);
-    int power = n - 1;
-    snprintf(p.integral, sizeof(p.integral), "S %dx^%dsin(x^%d)", a * n, power, n);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "-%dcos(x^%d)+C", a, n);
+    int potencia = n - 1;
+    snprintf(p.integral, sizeof(p.integral), "S %dx^%dsin(x^%d)", a * n, potencia, n);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "-%dcos(x^%d)+C", a, n);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dcos(x^%d)+C", a, n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dcos(x^%d)+C", a, n);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "-%dx^%dcos(x^%d)", a, power, n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "-%dx^%dcos(x^%d)", a, potencia, n);
     }
   }
 }
 
-static void generateCos(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarCoseno(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S cos(x) dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "sin(x)+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "sin(x)+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "-sin(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "-sin(x)+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "cos(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "cos(x)+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     int a = random(2, 8);
     snprintf(p.integral, sizeof(p.integral), "S %dcos(x)dx", a);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dsin(x)+C", a);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dsin(x)+C", a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "-%dsin(x)+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "-%dsin(x)+C", a);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dcos(x)+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dcos(x)+C", a);
     }
 
   } else {
     int a = random(2, 6);
     int n = random(2, 5);
-    int power = n - 1;
-    snprintf(p.integral, sizeof(p.integral), "S %dx^%dcos(x^%d)", a * n, power, n);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dsin(x^%d)+C", a, n);
+    int potencia = n - 1;
+    snprintf(p.integral, sizeof(p.integral), "S %dx^%dcos(x^%d)", a * n, potencia, n);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dsin(x^%d)+C", a, n);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "-%dsin(x^%d)+C", a, n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "-%dsin(x^%d)+C", a, n);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%dsin(x^%d)", a, power, n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%dsin(x^%d)", a, potencia, n);
     }
   }
 }
 
-static void generateExp(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarExponencial(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S e^x dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "e^x+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "e^x+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "xe^(x-1)");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "xe^(x-1)");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "xe^x");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "xe^x");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     int a = random(2, 8);
     snprintf(p.integral, sizeof(p.integral), "S %de^x dx", a);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%de^x+C", a);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%de^x+C", a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "e^x+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "e^x+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dxe^x", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dxe^x", a);
     }
 
   } else {
     int a = random(2, 6);
     int n = random(2, 5);
-    int power = n - 1;
-    snprintf(p.integral, sizeof(p.integral), "S %dx^%de^(x^%d)", a * n, power, n);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%de^(x^%d)+C", a, n);
+    int potencia = n - 1;
+    snprintf(p.integral, sizeof(p.integral), "S %dx^%de^(x^%d)", a * n, potencia, n);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%de^(x^%d)+C", a, n);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "e^(x^%d)+C", n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "e^(x^%d)+C", n);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%de^(x^%d)", a, power, n);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%de^(x^%d)", a, potencia, n);
     }
   }
 }
 
-static void generateLog(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarLog(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S 1/x dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "ln|x|+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "ln|x|+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/x^2+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/x^2+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/x+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/x+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     int a = random(2, 8);
     snprintf(p.integral, sizeof(p.integral), "S %d/x dx", a);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dln|x|+C", a);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dln|x|+C", a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%d/x^2+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%d/x^2+C", a);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "ln|x|+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "ln|x|+C");
     }
 
   } else {
     int a = random(2, 6);
     int n = random(2, 5);
-    int power = n - 1;
-    snprintf(p.integral, sizeof(p.integral), "S %dx^%d/x^%d", a * n, power, n);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dln|x|+C", a);
+    int potencia = n - 1;
+    snprintf(p.integral, sizeof(p.integral), "S %dx^%d/x^%d", a * n, potencia, n);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dln|x|+C", a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "ln|x|+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "ln|x|+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^%d+C", a, power);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^%d+C", a, potencia);
     }
   }
 }
 
-static void generateNegPower(IntegralProblem &p, DifficultyLevel d) {
+static void generarPotenciaNeg(ProblemaIntegral &p, NivelDificultad d) {
   int n;
 
-  if (d == DIFF_EASY) n = 2;
-  else if (d == DIFF_MEDIUM) n = random(2, 4);
+  if (d == DIF_FACIL) n = 2;
+  else if (d == DIF_MEDIO) n = random(2, 4);
   else n = random(4, 7);
 
   snprintf(p.integral, sizeof(p.integral), "S 1/x^%d dx", n);
 
   if (n == 2) {
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "-1/x+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "-1/x+C");
   } else {
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "-1/(%dx^%d)+C", n - 1, n - 1);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "-1/(%dx^%d)+C", n - 1, n - 1);
   }
 
   if (random(0, 2) == 0) {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/x^%d+C", n - 1);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/x^%d+C", n - 1);
   } else {
-    snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/x^%d+C", n + 1);
+    snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/x^%d+C", n + 1);
   }
 }
 
-static void generateRoot(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarRaiz(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S sqrt(x)dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "2x^(3/2)/3+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "2x^(3/2)/3+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^(3/2)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^(3/2)+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/sqrt(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/sqrt(x)+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     snprintf(p.integral, sizeof(p.integral), "S 1/sqrt(x)dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "2sqrt(x)+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "2sqrt(x)+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "sqrt(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "sqrt(x)+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1/(2sqrt(x))+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1/(2sqrt(x))+C");
     }
 
   } else {
     int a = random(2, 6);
     snprintf(p.integral, sizeof(p.integral), "S %d/sqrt(x)dx", a);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dsqrt(x)+C", 2 * a);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dsqrt(x)+C", 2 * a);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dsqrt(x)+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dsqrt(x)+C", a);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%d/(2sqrt(x))+C", a);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%d/(2sqrt(x))+C", a);
     }
   }
 }
 
-static void generatePolySum(IntegralProblem &p, DifficultyLevel d) {
+static void generarSumaPolinomio(ProblemaIntegral &p, NivelDificultad d) {
   int a = random(1, 5);
   int b = random(1, 5);
 
-  if (d == DIFF_EASY) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S (x^2+x)dx");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "x^3/3+x^2/2+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "x^3/3+x^2/2+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^3+x^2+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^3+x^2+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "2x+1+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "2x+1+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     snprintf(p.integral, sizeof(p.integral), "S (%dx^2+%dx)dx", a, b);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dx^3/3+%dx^2/2", a, b);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dx^3/3+%dx^2/2", a, b);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^3+%dx^2", a, b);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^3+%dx^2", a, b);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx+%d", 2 * a, b);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx+%d", 2 * a, b);
     }
 
   } else {
     int c = random(1, 5);
     snprintf(p.integral, sizeof(p.integral), "S (%dx^3+%dx+%d)", a, b, c);
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "%dx^4/4+%dx^2/2+%dx", a, b, c);
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "%dx^4/4+%dx^2/2+%dx", a, b, c);
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^4+%dx^2+%dx", a, b, c);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^4+%dx^2+%dx", a, b, c);
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "%dx^2+%d", 3 * a, b);
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "%dx^2+%d", 3 * a, b);
     }
   }
 }
 
-static void generateMixedSum(IntegralProblem &p, DifficultyLevel d) {
-  if (d == DIFF_EASY) {
+static void generarSumaMixta(ProblemaIntegral &p, NivelDificultad d) {
+  if (d == DIF_FACIL) {
     snprintf(p.integral, sizeof(p.integral), "S (x+sin(x))");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "x^2/2-cos(x)+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "x^2/2-cos(x)+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^2-cos(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^2-cos(x)+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "1-cos(x)+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "1-cos(x)+C");
     }
 
-  } else if (d == DIFF_MEDIUM) {
+  } else if (d == DIF_MEDIO) {
     snprintf(p.integral, sizeof(p.integral), "S (e^x+1/x)");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "e^x+ln|x|+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "e^x+ln|x|+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "e^x+1/x+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "e^x+1/x+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "xe^(x-1)+ln|x|");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "xe^(x-1)+ln|x|");
     }
 
   } else {
     snprintf(p.integral, sizeof(p.integral), "S (x^2+e^x)");
-    snprintf(p.correctAnswer, sizeof(p.correctAnswer), "x^3/3+e^x+C");
+    snprintf(p.respuestaCorrecta, sizeof(p.respuestaCorrecta), "x^3/3+e^x+C");
 
     if (random(0, 2) == 0) {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "x^3+e^x+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "x^3+e^x+C");
     } else {
-      snprintf(p.wrongAnswer, sizeof(p.wrongAnswer), "2x+e^x+C");
+      snprintf(p.respuestaIncorrecta, sizeof(p.respuestaIncorrecta), "2x+e^x+C");
     }
   }
 }

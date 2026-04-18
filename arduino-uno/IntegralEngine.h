@@ -3,49 +3,49 @@
 
 #include <Arduino.h>
 
-enum IntegralType {
-  POWER_SIMPLE,
-  POWER_COEFF,
-  CONSTANT_TYPE,
-  SIN_TYPE,
-  COS_TYPE,
-  EXP_TYPE,
-  LOG_TYPE,
-  NEG_POWER_TYPE,
-  ROOT_TYPE,
-  POLY_SUM_TYPE,
-  MIXED_SUM_TYPE,
-  INTEGRAL_TYPE_COUNT
+enum TipoIntegral {
+  POTENCIA_SIMPLE,
+  POTENCIA_COEF,
+  TIPO_CONSTANTE,
+  TIPO_SENO,
+  TIPO_COSENO,
+  TIPO_EXPONENCIAL,
+  TIPO_LOG,
+  TIPO_POTENCIA_NEG,
+  TIPO_RAIZ,
+  TIPO_SUMA_POL,
+  TIPO_SUMA_MIXTA,
+  CANTIDAD_TIPOS_INTEGRAL
 };
 
-enum DifficultyLevel {
-  DIFF_EASY,
-  DIFF_MEDIUM,
-  DIFF_HARD
+enum NivelDificultad {
+  DIF_FACIL,
+  DIF_MEDIO,
+  DIF_DIFICIL
 };
 
-struct IntegralProblem {
-  IntegralType type;
-  DifficultyLevel difficulty;
+struct ProblemaIntegral {
+  TipoIntegral tipo;
+  NivelDificultad dificultad;
 
   char integral[24];
-  char correctAnswer[24];
-  char wrongAnswer[24];
-  char optionA[24];
-  char optionB[24];
-  char correctOption;
+  char respuestaCorrecta[24];
+  char respuestaIncorrecta[24];
+  char opcionA[24];
+  char opcionB[24];
+  char opcionCorrecta;
 };
 
-void generateIntegralProblem(IntegralProblem &problem);
-void generateIntegralProblemByType(IntegralProblem &problem, IntegralType type);
-void generateIntegralProblemByTypeAndDifficulty(
-  IntegralProblem &problem,
-  IntegralType type,
-  DifficultyLevel difficulty
+void generarProblemaIntegral(ProblemaIntegral &problema);
+void generarProblemaIntegralPorTipo(ProblemaIntegral &problema, TipoIntegral tipo);
+void generarProblemaIntegralPorTipoYDificultad(
+  ProblemaIntegral &problema,
+  TipoIntegral tipo,
+  NivelDificultad dificultad
 );
 
-void buildOptions(IntegralProblem &problem);
-const char* getIntegralTypeName(IntegralType type);
-const char* getDifficultyName(DifficultyLevel difficulty);
+void construirOpciones(ProblemaIntegral &problema);
+const char* obtenerNombreTipoIntegral(TipoIntegral tipo);
+const char* obtenerNombreDificultad(NivelDificultad dificultad);
 
 #endif
