@@ -1,5 +1,13 @@
 #include "Telemetry.h"
 
+// ANSI control
+#define CLEAR_SCREEN "\033[2J"
+#define CURSOR_HOME  "\033[H"
+#define GREEN        "\033[32m"
+#define RED          "\033[31m"
+#define CYAN         "\033[36m"
+#define RESET        "\033[0m"
+
 static const char* outcomeText(bool correct) {
   return correct ? "Correct" : "Incorrect";
 }
@@ -8,114 +16,122 @@ static const char* optionLabel(char option) {
   switch (option) {
     case 'A': return "A";
     case 'B': return "B";
-    default: return "?";
+    default: return "-";
   }
 }
 
 void initTelemetry(unsigned long baudRate) {
   Serial.begin(baudRate);
+  delay(200);
 }
 
-void sendQuestionResultReport(
+static void sep() {
+  Serial.println(F("========================================"));
+}
+
+static void printLevel(uint8_t d) {
+  if (d == 0) Serial.print(F("Easy"));
+  else if (d == 1) Serial.print(F("Medium"));
+  else Serial.print(F("Hard"));
+}
+
+// Move accuracy logic OUT of rendering
+static uint8_t computeAccuracy(const CategoryStats &s) {
+  if (s.shown == 0) return 0;
+  return (s.correct * 100) / s.shown;
+}
+
+void renderDashboard(
   const IntegralProblem &problem,
   char selectedOption,
-  bool correct
+  bool correct,
+  bool hasAnswer
 ) {
   const CategoryStats* stats = getStats();
   const CategoryStats &s = stats[problem.type];
 
-  Serial.println();
-  Serial.println(F("========================================"));
-  Serial.println(F("[QUESTION RESULT]"));
+  // Clear screen
+  Serial.print(CLEAR_SCREEN);
+  Serial.print(CURSOR_HOME);
 
+  // HEADER
+  sep();
+  Serial.print(CYAN); Serial.println(F("INTEGRAL TRAINER")); Serial.print(RESET);
+  sep();
+
+  // PROBLEM INFO
   Serial.print(F("Category: "));
   Serial.println(getIntegralTypeName(problem.type));
 
   Serial.print(F("Difficulty: "));
   Serial.println(getDifficultyName(problem.difficulty));
 
-  Serial.print(F("Integral shown: "));
-  Serial.println(problem.integral);
-
-  Serial.print(F("Option A: "));
-  Serial.println(problem.optionA);
-
-  Serial.print(F("Option B: "));
-  Serial.println(problem.optionB);
-
-  Serial.print(F("Selected option: "));
-  Serial.println(optionLabel(selectedOption));
-
-  Serial.print(F("Correct option: "));
-  Serial.println(optionLabel(problem.correctOption));
-
-  Serial.print(F("Outcome: "));
-  Serial.println(outcomeText(correct));
-
-  Serial.println(F("Progress in this category:"));
-  Serial.print(F("  Asked: "));
-  Serial.println(s.shown);
-
-  Serial.print(F("  Correct: "));
-  Serial.println(s.correct);
-
-  Serial.print(F("  Wrong: "));
-  Serial.println(s.wrong);
-
-  Serial.print(F("  Practice priority: "));
-  Serial.println(s.weight);
-
-  Serial.print(F("  Mastery score: "));
-  Serial.println(s.mastery);
-
-  Serial.print(F("  Current challenge level: "));
-  if (s.difficulty == 0) Serial.println(F("Easy"));
-  else if (s.difficulty == 1) Serial.println(F("Medium"));
-  else Serial.println(F("Hard"));
-
-  Serial.println(F("========================================"));
-}
-
-void sendSessionSummaryReport() {
-  const CategoryStats* stats = getStats();
-
   Serial.println();
-  Serial.println(F("========================================"));
-  Serial.println(F("[SESSION SUMMARY]"));
+  Serial.println(F("Integral:"));
+  Serial.println(problem.integral);
+  Serial.println();
 
-  Serial.print(F("Total answered: "));
-  Serial.println(getTotalShown());
+  Serial.print(F("A) "));
+  Serial.println(problem.optionA);
+  Serial.print(F("B) "));
+  Serial.println(problem.optionB);
+  Serial.println();
 
-  Serial.print(F("Total correct: "));
-  Serial.println(getTotalCorrect());
+  // ANSWER FEEDBACK
+  if (hasAnswer) {
+    Serial.print(F("Selected: "));
+    Serial.println(optionLabel(selectedOption));
 
-  Serial.print(F("Total wrong: "));
-  Serial.println(getTotalWrong());
+    Serial.print(F("Correct: "));
+    Serial.println(optionLabel(problem.correctOption));
 
-  Serial.println(F(""));
-  Serial.println(F("Category breakdown:"));
+    Serial.print(F("Result: "));
+    Serial.print(correct ? GREEN : RED);
+    Serial.println(outcomeText(correct));
+    Serial.print(RESET);
 
-  for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) {
-    Serial.print(F("- "));
-    Serial.print(getIntegralTypeName((IntegralType)i));
-    Serial.print(F(": "));
-
-    Serial.print(stats[i].correct);
-    Serial.print(F(" correct / "));
-    Serial.print(stats[i].wrong);
-    Serial.print(F(" wrong"));
-
-    Serial.print(F(" | priority="));
-    Serial.print(stats[i].weight);
-
-    Serial.print(F(" | mastery="));
-    Serial.print(stats[i].mastery);
-
-    Serial.print(F(" | level="));
-    if (stats[i].difficulty == 0) Serial.println(F("Easy"));
-    else if (stats[i].difficulty == 1) Serial.println(F("Medium"));
-    else Serial.println(F("Hard"));
+    Serial.println();
   }
 
-  Serial.println(F("========================================"));
+  // CATEGORY STATS
+  sep();
+  Serial.println(F("CATEGORY"));
+
+  Serial.print(F("Asked: "));    Serial.println(s.shown);
+  Serial.print(F("Correct: "));  Serial.println(s.correct);
+  Serial.print(F("Wrong: "));    Serial.println(s.wrong);
+
+  Serial.print(F("Accuracy: "));
+  if (s.shown == 0) Serial.println(F("N/A"));
+  else {
+    Serial.print(computeAccuracy(s));
+    Serial.println(F("%"));
+  }
+
+  Serial.print(F("Mastery: "));
+  Serial.println(s.mastery);
+
+  Serial.print(F("Level: "));
+  printLevel(s.difficulty);
+  Serial.println();
+
+  // GLOBAL STATS
+  sep();
+  Serial.println(F("GLOBAL"));
+
+  uint16_t total = getTotalShown();
+  uint16_t correctTotal = getTotalCorrect();
+
+  Serial.print(F("Total Answered: "));
+  Serial.println(total);
+
+  Serial.print(F("Global Accuracy: "));
+  if (total == 0) Serial.println(F("N/A"));
+  else {
+    uint8_t acc = (correctTotal * 100) / total;
+    Serial.print(acc);
+    Serial.println(F("%"));
+  }
+
+  sep();
 }

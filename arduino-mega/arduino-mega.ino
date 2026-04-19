@@ -29,6 +29,8 @@ enum AppState {
   STATE_SHOW_RESULT
 };
 
+AppState appState = STATE_SHOW_PROBLEM;
+
 struct ButtonState {
   uint8_t pin;
   bool lastRaw;
@@ -36,23 +38,21 @@ struct ButtonState {
   unsigned long lastChangeMs;
 };
 
-AppState appState = STATE_SHOW_PROBLEM;
-
-unsigned long resultStartTime = 0;
-bool ledActive = false;
-unsigned long ledOffTime = 0;
-
-const unsigned long RESULT_SCREEN_MS = 1000;
-const unsigned long LED_ON_MS = 180;
 const unsigned long DEBOUNCE_MS = 35;
-
-const uint8_t CHAR_WIDTH = 6;
-const uint8_t LINE_HEIGHT = 8;
-const uint8_t MAX_LINES = 8;
-const uint8_t FULL_WIDTH_CHARS = SCREEN_WIDTH / CHAR_WIDTH;
 
 ButtonState buttonA = {BOTON_A, HIGH, HIGH, 0};
 ButtonState buttonB = {BOTON_B, HIGH, HIGH, 0};
+
+unsigned long resultStartTime = 0;
+const unsigned long RESULT_SCREEN_MS = 1000;
+
+bool ledActive = false;
+unsigned long ledOffTime = 0;
+const unsigned long LED_ON_MS = 180;
+
+const uint8_t CHAR_WIDTH = 6;
+const uint8_t LINE_HEIGHT = 8;
+const uint8_t FULL_WIDTH_CHARS = SCREEN_WIDTH / CHAR_WIDTH;
 
 bool updateButton(ButtonState &b) {
   bool raw = digitalRead(b.pin);
@@ -65,6 +65,8 @@ bool updateButton(ButtonState &b) {
   if ((millis() - b.lastChangeMs) >= DEBOUNCE_MS) {
     if (b.stableState != raw) {
       b.stableState = raw;
+
+      // ACTIVE LOW
       if (b.stableState == LOW) return true;
     }
   }
@@ -103,7 +105,6 @@ uint8_t drawChunkedText(
     }
 
     rendered++;
-
     if (textLen == 0) break;
   }
 
@@ -120,10 +121,7 @@ void drawProblemScreen() {
 
   uint8_t line = 1;
 
-  // Give more lines to the integral itself
   line += drawChunkedText(line, currentProblem.integral, FULL_WIDTH_CHARS, 3, "", "  ");
-
-  // Give more space to options
   line++;
 
   line += drawChunkedText(line, currentProblem.optionA, FULL_WIDTH_CHARS, 2, "A:", "  ");
@@ -142,16 +140,15 @@ void drawResultScreen(bool correct, char selected) {
   display.print(selected);
 
   display.setCursor(0, 24);
+  display.print("Resultado:");
+
+  display.setCursor(0, 36);
   if (correct) {
-    display.print("Resultado:");
-    display.setCursor(0, 36);
     display.print("CORRECTO");
   } else {
-    display.print("Resultado:");
-    display.setCursor(0, 36);
     display.print("INCORRECTO");
     display.setCursor(0, 48);
-    display.print("Respuesta: ");
+    display.print("Resp: ");
     display.print(currentProblem.correctOption);
   }
 
@@ -159,44 +156,34 @@ void drawResultScreen(bool correct, char selected) {
 }
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("BOOT: setup started");
+  initTelemetry(115200);
+  Serial.println("BOOT");
 
   Wire.begin();
 
   pinMode(BOTON_A, INPUT_PULLUP);
   pinMode(BOTON_B, INPUT_PULLUP);
+
   pinMode(LED_VERDE, OUTPUT);
   pinMode(LED_ROJO, OUTPUT);
   pinMode(BUZZER, OUTPUT);
 
   digitalWrite(LED_VERDE, LOW);
   digitalWrite(LED_ROJO, LOW);
-  digitalWrite(BUZZER, LOW);
 
   randomSeed(analogRead(A0));
   initStudentModel();
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
-    Serial.println("BOOT: OLED init failed");
-    while (true) {
-      delay(100);
-    }
+    while (true);
   }
 
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
-  display.print("Integral Generator");
-  display.setCursor(0, 16);
-  display.print("OLED 128x64 listo");
+  display.print("Integral Trainer");
   display.display();
 
-  Serial.println("BOOT: display init ok");
-
   loadNextAdaptiveProblem();
-  Serial.println("BOOT: first problem loaded");
 }
 
 void loop() {
@@ -215,7 +202,8 @@ void handleButtons() {
 
   if (updateButton(buttonA)) {
     processAnswer('A');
-  } else if (updateButton(buttonB)) {
+  }
+  else if (updateButton(buttonB)) {
     processAnswer('B');
   }
 }
@@ -224,34 +212,26 @@ void processAnswer(char selectedOption) {
   bool correct = validateAnswer(currentProblem, selectedOption);
 
   registerResult(currentProblem.type, correct);
-  sendQuestionResultReport(currentProblem, selectedOption, correct);
 
-  showResult(correct, selectedOption);
+  renderDashboard(currentProblem, selectedOption, correct, true);
+
+  drawResultScreen(correct, selectedOption);
   triggerFeedback(correct);
 
   resultStartTime = millis();
   appState = STATE_SHOW_RESULT;
-
-  if (getTotalShown() % 8 == 0) {
-    sendSessionSummaryReport();
-  }
 }
 
 void loadNextAdaptiveProblem() {
-  IntegralType nextType = pickNextIntegralType();
-  DifficultyLevel nextDifficulty = getDifficultyForType(nextType);
-  generateIntegralProblemByTypeAndDifficulty(currentProblem, nextType, nextDifficulty);
+  IntegralType nextType = pickNextIntegralTypeSmart();
+  DifficultyLevel diff = getDifficultyForType(nextType);
+
+  generateIntegralProblemByTypeAndDifficulty(currentProblem, nextType, diff);
+
+  renderDashboard(currentProblem, '-', false, false);
 
   appState = STATE_SHOW_PROBLEM;
-  showProblem();
-}
-
-void showProblem() {
   drawProblemScreen();
-}
-
-void showResult(bool correct, char selected) {
-  drawResultScreen(correct, selected);
 }
 
 void triggerFeedback(bool correct) {
@@ -273,6 +253,7 @@ void updateOutputs() {
   if (ledActive && millis() >= ledOffTime) {
     digitalWrite(LED_VERDE, LOW);
     digitalWrite(LED_ROJO, LOW);
+    noTone(BUZZER);
     ledActive = false;
   }
 }

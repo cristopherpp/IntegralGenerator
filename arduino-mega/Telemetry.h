@@ -7,12 +7,11 @@
 
 void initTelemetry(unsigned long baudRate = 115200);
 
-void sendQuestionResultReport(
+void renderDashboard(
   const IntegralProblem &problem,
   char selectedOption,
-  bool correct
+  bool correct,
+  bool hasAnswer
 );
-
-void sendSessionSummaryReport();
 
 #endif

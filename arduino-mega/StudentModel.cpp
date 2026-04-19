@@ -2,44 +2,22 @@
 
 static CategoryStats stats[INTEGRAL_TYPE_COUNT];
 
-static const uint8_t BASE_WEIGHT = 10;
-static const uint8_t MIN_WEIGHT = 5;
-static const uint8_t MAX_WEIGHT = 34;
-static IntegralType lastType = INTEGRAL_TYPE_COUNT;
-static uint8_t repeatCount = 0;
-
-static uint8_t clampU8(int value, uint8_t minVal, uint8_t maxVal) {
-  if (value < minVal) return minVal;
-  if (value > maxVal) return maxVal;
-  return (uint8_t)value;
-}
-
-static uint8_t computeGlobalAccuracy() {
-  uint16_t correct = 0;
-  uint16_t shown = 0;
-  for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) {
-    correct += stats[i].correct;
-    shown += stats[i].shown;
-  }
-
-  if (shown == 0) return 0;
-  return (uint8_t)((correct * 100U) / shown);
-}
-
 void initStudentModel() {
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) {
     stats[i].shown = 0;
     stats[i].correct = 0;
     stats[i].wrong = 0;
+
     stats[i].consecutiveCorrect = 0;
     stats[i].consecutiveWrong = 0;
-    stats[i].weight = BASE_WEIGHT;
+
     stats[i].difficulty = 1;
     stats[i].mastery = 40;
-  }
 
-  lastType = INTEGRAL_TYPE_COUNT;
-  repeatCount = 0;
+    stats[i].avgResponseTime = 0;
+    stats[i].accuracy = 0;
+    stats[i].trend = 0;
+  }
 }
 
 void registerResult(IntegralType type, bool wasCorrect) {
@@ -48,87 +26,94 @@ void registerResult(IntegralType type, bool wasCorrect) {
 
   if (wasCorrect) {
     s.correct++;
-    s.consecutiveCorrect = clampU8((int)s.consecutiveCorrect + 1, 0, 12);
+    s.consecutiveCorrect++;
     s.consecutiveWrong = 0;
-    s.mastery = clampU8((int)s.mastery + 8, 0, 100);
-
-    if (s.weight > BASE_WEIGHT) s.weight = clampU8((int)s.weight - 3, MIN_WEIGHT, MAX_WEIGHT);
-    else s.weight = clampU8((int)s.weight - 1, MIN_WEIGHT, MAX_WEIGHT);
-
-    if ((s.consecutiveCorrect >= 2 && s.mastery >= 55) || (s.consecutiveCorrect >= 3)) {
-      s.difficulty = clampU8((int)s.difficulty + 1, 0, 2);
-      s.consecutiveCorrect = 0;
-    }
+    s.mastery = min(100, s.mastery + 5);
   } else {
     s.wrong++;
-    s.consecutiveWrong = clampU8((int)s.consecutiveWrong + 1, 0, 12);
+    s.consecutiveWrong++;
     s.consecutiveCorrect = 0;
-    s.mastery = clampU8((int)s.mastery - 12, 0, 100);
-    s.weight = clampU8((int)s.weight + 5 + s.consecutiveWrong, MIN_WEIGHT, MAX_WEIGHT);
-
-    if (s.consecutiveWrong >= 2 || s.mastery <= 20) {
-      s.difficulty = clampU8((int)s.difficulty - 1, 0, 2);
-      s.consecutiveWrong = 0;
-    }
+    s.mastery = max(0, s.mastery - 8);
   }
+
+  // accuracy update
+  s.accuracy = (float)s.correct / s.shown;
 }
 
-IntegralType pickNextIntegralType() {
-  int totalScore = 0;
+void updatePerformance(CategoryStats &s, bool correct, unsigned long rt) {
+  // moving average time
+  if (s.avgResponseTime == 0) {
+    s.avgResponseTime = rt;
+  } else {
+    s.avgResponseTime = 0.8f * s.avgResponseTime + 0.2f * rt;
+  }
+
+  // trend
+  if (correct && rt < s.avgResponseTime) s.trend = 1;
+  else if (!correct) s.trend = -1;
+  else s.trend = 0;
+}
+
+static IntegralType lastType = INTEGRAL_TYPE_COUNT;
+static uint8_t repeatCount = 0;
+
+IntegralType pickNextIntegralTypeSmart() {
+  const CategoryStats* stats = getStats();
+
   int scores[INTEGRAL_TYPE_COUNT];
+  int total = 0;
 
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) {
     const CategoryStats &s = stats[i];
-    int score = s.weight;
 
-    if (s.shown == 0) score += 12;
-    else if (s.shown < 3) score += 5;
+    int score = 10; // base → ensures ALL types appear
 
-    if (s.wrong > s.correct) score += 6;
-    if (s.consecutiveWrong > 0) score += s.consecutiveWrong * 4;
-    if (s.mastery < 50) score += (50 - s.mastery) / 5;
+    // --- exploration ---
+    if (s.shown == 0) score += 20;
+    else if (s.shown < 3) score += 10;
 
+    // --- weakness targeting ---
+    if (s.correct < s.wrong) score += 10;
+    score += (100 - s.mastery) / 5;
+
+    // --- anti repetition ---
     if ((IntegralType)i == lastType) {
-      score -= 8 + repeatCount * 3;
+      score -= (10 + repeatCount * 5);
     }
 
     if (score < 1) score = 1;
+
     scores[i] = score;
-    totalScore += score;
+    total += score;
   }
 
-  if (totalScore <= 0) return POWER_SIMPLE;
-
-  int r = random(0, totalScore);
-  int accum = 0;
+  int r = random(total);
+  int acc = 0;
 
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) {
-    accum += scores[i];
-    if (r < accum) {
+    acc += scores[i];
+    if (r < acc) {
       IntegralType selected = (IntegralType)i;
-      if (selected == lastType) repeatCount = clampU8((int)repeatCount + 1, 0, 6);
-      else {
+
+      if (selected == lastType) {
+        repeatCount++;
+      } else {
         lastType = selected;
         repeatCount = 0;
       }
+
       return selected;
     }
   }
 
-  return POWER_SIMPLE;
+  return POWER_SIMPLE; // fallback
 }
 
- DifficultyLevel getDifficultyForType(IntegralType type) {
-  uint8_t base = stats[type].difficulty;
-  uint8_t accuracy = computeGlobalAccuracy();
-  uint8_t shown = getTotalShown();
+DifficultyLevel getDifficultyForType(IntegralType type) {
+  const CategoryStats &s = stats[type];
 
-  if (shown >= 8 && accuracy >= 70 && base < 2) base++;
-  if (shown >= 18 && accuracy >= 82) base = 2;
-  if (accuracy <= 45 && shown >= 6 && base > 0) base--;
-
-  if (base == 0) return DIFF_EASY;
-  if (base == 1) return DIFF_MEDIUM;
+  if (s.accuracy < 0.4) return DIFF_EASY;
+  if (s.accuracy < 0.75) return DIFF_MEDIUM;
   return DIFF_HARD;
 }
 
@@ -139,17 +124,17 @@ const CategoryStats* getStats() {
 uint8_t getTotalCorrect() {
   uint16_t total = 0;
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) total += stats[i].correct;
-  return (uint8_t)total;
+  return total;
 }
 
 uint8_t getTotalWrong() {
   uint16_t total = 0;
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) total += stats[i].wrong;
-  return (uint8_t)total;
+  return total;
 }
 
 uint8_t getTotalShown() {
   uint16_t total = 0;
   for (int i = 0; i < INTEGRAL_TYPE_COUNT; i++) total += stats[i].shown;
-  return (uint8_t)total;
+  return total;
 }
